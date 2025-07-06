@@ -1,0 +1,1 @@
+Projeto de plataforma web de comunidade online voltada para conteúdos exclusivos para assinantes
