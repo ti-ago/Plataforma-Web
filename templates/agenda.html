@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block title %}
+    Marque uma Consulta
+{% endblock %}
+{% block main %}
+<h1>Agenda de Consultas</h1>
+    <table class="calendar">
+        <thead>
+            <a href="{{ url_for('agenda', month=month_selected - 1) }}" class="btn">Anterior</a>
+            <a href="{{ url_for('agenda', month=month_selected + 1) }}" class="btn">Próximo</a>
+            <tr>
+
+                <th>{{ mo }}</th>
+            </tr>
+            <tr>
+                <th>DOM</th>
+                <th>SEG</th>
+                <th>TER</th>
+                <th>QUA</th>
+                <th>QUI</th>
+                <th>SEX</th>
+                <th>SAB</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in range(1, 32) %}
+                {% if loop.first or loop.index0 % 7 == 0 %}
+                    <tr>
+                {% endif %}
+                <td>{{ i }}</td>
+                {% if loop.last or loop.index % 7 == 0 %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

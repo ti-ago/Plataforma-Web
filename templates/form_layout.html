@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <div class="container text-center" style="max-width: 400px;">
+        <h1 class="h3 mb-3 fw-normal">{% block form_title %}{% endblock %}</h1>
+
+        <form autocomplete="off" method="POST" action="{% block form_action %}{% endblock %}">
+            
+            {% block form_fields %}{% endblock %}
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary">
+                {% block form_button_text %}{% endblock %}
+            </button>
+        </form>
+
+        {% block form_extra_links %}{% endblock %}
+    </div>
+{% endblock %}

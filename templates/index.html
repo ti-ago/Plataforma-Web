@@ -1,30 +1,29 @@
 {% extends "layout.html" %}
+{% block title %}
+    Página Inicial
+{% endblock %}
 
 {% block main %}
-<h1>Bem-vinda à nossa plataforma, {{name}}!</h1>
+<h1>Bem-vinda à nossa plataforma, {{ current_user.firstName }}!</h1>
 <p>Explore nossos conteúdos exclusivos para uma jornada de bem-estar.</p>
 
 <h2>Nossos Pilares</h2>
 
 <div class="category-container">
-    <a href="/nutrition">
-        <div class="category-thumbnail">
-            <h3>Nutrição</h3>
-            <p>Dicas e receitas para uma alimentação saudável para você e sua família.</p>
-        </div>
+    <a href="{{ url_for('contents', category='nutrition') }}" class="category-thumbnail">
+        <img src="{{ url_for('static', filename='images/nutrition.jpg') }}" alt="Nutrição">
+        <h3>Nutrição</h3>
+        <p>Dicas e receitas para uma alimentação saudável para você e sua família.</p>
     </a>
-    <a href="/physical-activity">
-        <div class="category-thumbnail">
-            <h3>Atividade Física</h3>
-            <p>Exercícios e rotinas para fazer em casa e manter o corpo em movimento.</p>
-        </div>
+    <a href="{{ url_for('contents', category='physical_activity') }}" class="category-thumbnail">
+        <img src="{{ url_for('static', filename='images/physical_activity.jpg') }}" alt="Atividade Física">
+        <h3>Atividade Física</h3>
+        <p>Exercícios e rotinas para fazer em casa e manter o corpo em movimento.</p>
     </a>
-    <a href="/emotional-care">
-        <div class="category-thumbnail">
-            <h3>Cuidados Emocionais</h3>
-            <p>Apoio e orientação para cuidar da sua saúde mental e emocional.</p>
-        </div>
+    <a href="{{ url_for('contents', category='emotional_care') }}" class="category-thumbnail">
+        <img src="{{ url_for('static', filename='images/emotional_care.jpg') }}" alt="Cuidados Emocionais">
+        <h3>Cuidados Emocionais</h3>
+        <p>Apoio e orientação para cuidar da sua saúde mental e emocional.</p>
     </a>
 </div>
-
 {% endblock %}

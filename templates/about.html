@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Sobre Nós
+{% endblock %}
+
+{% block main %}
+<h1>Sobre Nós</h1>
+<div>
+    <p>
+        O projeto Move Mom nasceu de uma experiência de maternidade com dificuldades onde lorem ipsum dolor sit amet consectetur adipisicing elit. Laborum veniam reiciendis pariatur excepturi omnis iste doloremque doloribus nihil, qui cumque, eveniet corporis et vitae fugit quas, reprehenderit at eum hic. Lorem ipsum dolor sit amet consectetur adipisicing elit. Sed, voluptatem ratione modi voluptatum vel unde excepturi voluptates debitis error assumenda expedita illum quam quos numquam facere iste ducimus totam nam. Lorem ipsum dolor sit amet consectetur, adipisicing elit. Eius dolorum obcaecati sequi ratione nostrum recusandae praesentium tempore at illo velit earum nesciunt quasi, ipsam officiis quaerat veritatis reprehenderit sunt aliquid. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam necessitatibus iste nesciunt consequuntur ipsa praesentium ipsum eligendi sequi eum eaque nisi deserunt, consequatur, similique, quam voluptatibus minima? Animi, minus ad!
+    </p>
+</div>
+<div class="category-container">
+    <a href="{{ url_for('contents', category='nutrition') }}" class="category-people-thumbnail">
+        <img src="{{ url_for('static', filename='images/profile1.jpg') }}" alt="Nutrição">
+        <h3>Nutrição</h3>
+        <p>Dicas e receitas para uma alimentação saudável para você e sua família.</p>
+    </a>
+    <a href="{{ url_for('contents', category='physical_activity') }}" class="category-people-thumbnail">
+        <img src="{{ url_for('static', filename='images/profile2.jpg') }}" alt="Atividade Física">
+        <h3>Atividade Física</h3>
+        <p>Exercícios e rotinas para fazer em casa e manter o corpo em movimento.</p>
+    </a>
+    <a href="{{ url_for('contents', category='emotional_care') }}" class="category-people-thumbnail">
+        <img src="{{ url_for('static', filename='images/profile3.jpg') }}" alt="Cuidados Emocionais">
+        <h3>Cuidados Emocionais</h3>
+        <p>Apoio e orientação para cuidar da sua saúde mental e emocional.</p>
+    </a>
+</div>
+{% endblock %}

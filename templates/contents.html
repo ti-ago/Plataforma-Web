@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block main %}
+    <h1>{{ title }}</h1>
+    {% if videos %}
+        {% for video in videos %}
+            <div class="video-container">
+                <iframe width="560" height="315" src="https://www.youtube.com/embed/{{ video.video_id }}?modestbranding=1&rel=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <h3>{{ video.title }}</h3>
+                <p>{{ video.description }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Nenhum vídeo encontrado.</p>
+    {% endif %}
+{% endblock %}

@@ -1,17 +1,26 @@
-{% extends "layout.html" %}
+{% extends "form_layout.html" %}
+
 {% block title %}
     Login
 {% endblock %}
-    <h1>Login</h1>
-{% block main %}
-    <form method="POST" action="/login">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-            <br>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-            <br>
-            <button type="submit">Login</button>
-    </form>
+
+{% block form_title %}Login{% endblock %}
+
+{% block form_action %}{{ url_for('login') }}{% endblock %}
+
+{% block form_fields %}
+    <div class="form-floating mb-3">
+        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+        <label for="email">Email</label>
+    </div>
+    <div class="form-floating mb-3">
+        <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+        <label for="password">Password</label>
+    </div>
 {% endblock %}
 
+{% block form_button_text %}Login{% endblock %}
+
+{% block form_extra_links %}
+    <div class="mt-3"><a href="{{ url_for('forgot_password') }}">Forgot Password?</a></div>
+{% endblock %}

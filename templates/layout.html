@@ -3,20 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <title>Move Mom - {% block title %}{% endblock %}</title>
 </head>
 <body>
+    <div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% set alert_class = 'alert-info' %} <!-- Default to blue/info -->
+                {% if category == 'error' %}{% set alert_class = 'alert-danger' %}{% endif %}
+                {% if category == 'success' %}{% set alert_class = 'alert-success' %}{% endif %}
+                <div class="alert {{ alert_class }} alert-dismissible fade show text-center" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </div>
     <header>
-        <nav>
-            <ul>
-                <li><a href="/">Home</a></li>
-                <li><a href="/register">Register</a></li>
-                <li><a href="/login">Login</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
+        <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: darkgoldenrod;">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('about') }}">
+                    <img src="{{ url_for('static', filename='images/text-logo-dark-background.png') }}" alt="Programa Movemom Logo" class="navbar-logo">
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        {% if current_user.is_authenticated %}
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('agenda') }}">Marque uma Consulta</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
+                        {% else %}
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Register</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
         </nav>
     </header>
-    {% block main %}
-    {% endblock %}
+    <main class="container mt-4">
+        {% block main %}{% endblock %}
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+    <!-- Custom JS for auto-fading alerts -->
+    <script>
+        // Wait for the document to be fully loaded
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Select all alert elements
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                // Set a timeout to automatically close the alert after 5 seconds (5000 milliseconds)
+                setTimeout(() => new bootstrap.Alert(alert).close(), 5000);
+            });
+        });
+    </script>
 </body>
 </html>
