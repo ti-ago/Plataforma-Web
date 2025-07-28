@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Planos de Assinatura
+{% endblock %}
+
+{% block main %}
+<style>
+    .pricing-header {
+        max-width: 700px;
+    }
+    .plan-card {
+        transition: transform .2s, box-shadow .2s;
+        border: 1px solid #dee2e6;
+    }
+    .plan-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    }
+</style>
+
+<div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+  <h1 class="display-4">Nossos Planos</h1>
+  <p class="lead">Escolha o plano que melhor se adapta à sua jornada de bem-estar. Tenha acesso a conteúdos exclusivos, agendamento com profissionais e muito mais.</p>
+</div>
+
+<div class="container">
+  <div class="row justify-content-center">
+    {% for plan in plans %}
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card mb-4 shadow-sm plan-card h-100">
+          <div class="card-header">
+            <h4 class="my-0 fw-normal">{{ plan.name }}</h4>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <h1 class="card-title pricing-card-title">R$ {{ "%.2f"|format(plan.price) }} <small class="text-muted fw-light">/ {% if plan.duration_months == 1 %}mês{% else %}{{ plan.duration_months }} meses{% endif %}</small></h1>
+            <ul class="list-unstyled mt-3 mb-4">
+              <li>Acesso a todos os conteúdos</li>
+              <li>Agendamento de consultas</li>
+              <li>Suporte via comunidade</li>
+              <li>Descontos exclusivos</li>
+            </ul>
+            <a href="{{ url_for('subscribe', plan_id=plan.id) }}" class="btn btn-lg btn-primary mt-auto">Assinar Agora</a>
+          </div>
+        </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

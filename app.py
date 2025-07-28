@@ -3,7 +3,7 @@ import calendar
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -60,6 +60,12 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     document = db.Column(db.String(150), unique=True, nullable=False)
     hash = db.Column(db.String(150), nullable=False)
+
+    @property
+    def has_active_subscription(self):
+        """Verifica se o usuário tem uma assinatura ativa de forma eficiente."""
+        return UserSubscription.query.filter(UserSubscription.user_id == self.id, 
+                                             UserSubscription.end_date > datetime.now()).first() is not None
 
 class UserData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -184,12 +190,11 @@ def logout():
 def contents():
     category = request.args.get('category')
 
-    # Se nenhuma categoria for especificada na URL, redireciona para a página inicial.
     if not category:
         flash("Por favor, selecione uma categoria para ver os conteúdos.", "warning")
         return redirect(url_for('index'))
 
-    # Mapeia os nomes das categorias para títulos mais amigáveis
+    
     category_titles = {
         "physical_activity": "Atividade Física",
         "nutrition": "Nutrição",
@@ -233,7 +238,7 @@ def reset_password():
         if new_password == confirm_password:
             user.hash = generate_password_hash(new_password, method='scrypt', salt_length=16)
             db.session.commit()
-            session.pop('user_id', None) # Clear the session
+            session.pop('user_id', None)
             flash("Your password has been reset successfully. Please log in.", "success")
             return redirect(url_for('login'))
         flash("Passwords do not match.", "error")
@@ -252,17 +257,47 @@ def contact():
 @login_required
 def professionals():
     """Exibe uma lista de todos os profissionais e suas áreas."""
-    # Junta as tabelas Professional e Area e ordena pelo nome da área, depois pelo sobrenome do profissional
+
     all_professionals = Professional.query.join(Area).order_by(Area.name, Professional.lastName).all()
     return render_template('professionals.html', professionals=all_professionals)
 
+@app.route('/subscriptions')
+@login_required
+def subscriptions_page():
+    """Exibe a página com os planos de assinatura disponíveis."""
+    plans = Subscription.query.order_by(Subscription.price).all()
+    return render_template('subscriptions.html', plans=plans)
+
+@app.route('/subscribe/<int:plan_id>')
+@login_required
+def subscribe(plan_id):
+    """Processa a assinatura de um usuário a um plano."""
+    plan = Subscription.query.get_or_404(plan_id)
+
+    # Lógica para calcular a data de término.
+    # Nota: Usar 30 dias por mês é uma aproximação. Para maior precisão,
+    # bibliotecas como `dateutil.relativedelta` podem ser usadas.
+    end_date = datetime.now() + timedelta(days=30 * plan.duration_months)
+
+    # Opcional: Lógica para lidar com assinaturas existentes (ex: estender, substituir).
+    # Por enquanto, apenas cria uma nova.
+    new_subscription = UserSubscription(
+        user_id=current_user.id,
+        subscription_id=plan.id,
+        end_date=end_date
+    )
+    db.session.add(new_subscription)
+    db.session.commit()
+
+    flash(f"Você assinou o {plan.name} com sucesso! Seu acesso é válido até {end_date.strftime('%d/%m/%Y')}.", "success")
+    return redirect(url_for('subscriptions_page'))
 
 @app.route("/agenda", methods=["GET"])
 @app.route("/agenda/<int:year>/<int:month>", methods=["GET"])
 @login_required
 def agenda(year=None, month=None):
     now = datetime.now()
-    # Pega o ID do profissional da query string da URL (ex: /agenda?professional_id=5)
+   
     print(f"DEBUG: Argumentos recebidos na URL: {request.args}")
     selected_prof_id = request.args.get('professional_id', default=None, type=int)
 
@@ -271,26 +306,20 @@ def agenda(year=None, month=None):
     if month is None:
         month = now.month
 
-    # Lógica robusta para calcular o mês/ano anterior e o próximo
+
     current_date = datetime(year, month, 1)
 
-    # Mês anterior
     prev_month_date = current_date - timedelta(days=1)
     previous_year = prev_month_date.year
     previous_month = prev_month_date.month
 
-    # Próximo mês
     _, num_days_in_month = calendar.monthrange(year, month)
     next_month_date = current_date + timedelta(days=num_days_in_month)
     next_year = next_month_date.year
     next_month = next_month_date.month
 
-    # Define o primeiro dia da semana como Domingo para corresponder ao HTML
-    # calendar.SUNDAY é 6. A tabela HTML começa com Domingo.
     calendar.setfirstweekday(calendar.SUNDAY)
     
-    # Gera a matriz do calendário diretamente.
-    # Dias fora do mês são representados por 0.
     month_calendar = calendar.monthcalendar(year, month)
 
     portuguese_months = {
@@ -320,5 +349,15 @@ if __name__ == '__main__':
     with app.app_context():
     
         db.create_all()
+
+        # Adiciona planos de assinatura iniciais se não existirem
+        if not Subscription.query.first():
+            print("INFO: Populando o banco de dados com planos de assinatura...")
+            plan1 = Subscription(name="Plano Mensal", price=29.90, duration_months=1)
+            plan2 = Subscription(name="Plano Semestral", price=149.90, duration_months=6)
+            plan3 = Subscription(name="Plano Anual", price=239.90, duration_months=12)
+            db.session.add_all([plan1, plan2, plan3])
+            db.session.commit()
+            print("INFO: Planos de assinatura criados.")
     
     app.run(debug=True)
