@@ -1,37 +1,174 @@
 {% extends "layout.html" %}
-{% block title %}
-    Marque uma Consulta
-{% endblock %}
-{% block main %}
-<h1>Agenda de Consultas</h1>
-    <table class="calendar">
-        <thead>
-            <a href="{{ url_for('agenda', month=month_selected - 1) }}" class="btn">Anterior</a>
-            <a href="{{ url_for('agenda', month=month_selected + 1) }}" class="btn">Próximo</a>
-            <tr>
 
-                <th>{{ mo }}</th>
-            </tr>
+{% block title %}
+    Agenda
+{% endblock %}
+
+{% block main %}
+<style>
+    .calendar-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        background-color: #fff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .calendar-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: #333;
+    }
+    .calendar-nav a {
+        text-decoration: none;
+        color: #007bff;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        transition: background-color 0.2s;
+    }
+    .calendar-nav a:hover {
+        background-color: #e9ecef;
+    }
+    .calendar-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
+    }
+    .calendar-table th, .calendar-table td {
+        border: 1px solid #dee2e6;
+        padding: 1rem 0.5rem;
+        height: 80px;
+        vertical-align: top;
+    }
+    .calendar-table th {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+    }
+    .calendar-table td {
+        color: #212529;
+    }
+    .calendar-table td.empty {
+        background-color: #f8f9fa;
+    }
+    /* Aplica o efeito hover apenas nos dias válidos (células que não estão vazias) */
+    .calendar-table td:not(.empty):hover {
+        background-color: #f0f0f0;
+        cursor: pointer;
+    }
+</style>
+
+<div class="container">
+    <h2 class="text-center">Escolha sua área de interesse</h2>
+    <select id="interest-select" class="form-select mb-3">
+        <option value="" selected>Selecione um profissional...</option>
+        {% for area in areas %}
+            {% if area.professionals.all() %} {# Só mostra a área se tiver profissionais nela #}
+            <optgroup label="{{ area.name }}">
+                {% for prof in area.professionals.all() %}
+                    <option value="prof-{{ prof.id }}" {% if prof.id == selected_prof_id %}selected{% endif %}>{{ prof.full_name }}</option>
+                {% endfor %}
+            </optgroup>
+            {% endif %}
+        {% endfor %}
+    </select>
+</div>
+<div class="calendar-container">
+    <div class="calendar-header">
+        <h1>{{ month_name }} de {{ year }}</h1>
+        <div class="calendar-nav">
+            <a href="{{ url_for('agenda', year=previous_year, month=previous_month, professional_id=selected_prof_id) }}">Anterior</a>
+            <a href="{{ url_for('agenda', year=next_year, month=next_month, professional_id=selected_prof_id) }}">Próximo</a>
+            <a href="{{ url_for('agenda', year=None, month=None, professional_id=selected_prof_id) }}">Atual</a>
+        </div>
+    </div>
+
+    <table class="calendar-table">
+        <thead>
             <tr>
-                <th>DOM</th>
-                <th>SEG</th>
-                <th>TER</th>
-                <th>QUA</th>
-                <th>QUI</th>
-                <th>SEX</th>
-                <th>SAB</th>
+                <th>Dom</th><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th>
             </tr>
         </thead>
         <tbody>
-            {% for i in range(1, 32) %}
-                {% if loop.first or loop.index0 % 7 == 0 %}
-                    <tr>
-                {% endif %}
-                <td>{{ i }}</td>
-                {% if loop.last or loop.index % 7 == 0 %}
-                    </tr>
-                {% endif %}
+            {% for week in calendar_data %}
+            <tr>
+                {% for day in week %}
+                    {% if day %}
+                        {# Célula para um dia válido, que abre o modal ao ser clicada #}
+                        <td data-bs-toggle="modal" data-bs-target="#appointmentModal" data-day="{{ day }}" data-month="{{ month }}" data-year="{{ year }}">
+                            {{ day }}
+                        </td>
+                    {% else %}
+                        {# Célula para um dia que não pertence ao mês #}
+                        <td class="empty"></td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<!-- Modal de Agendamento -->
+<div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="appointmentModalLabel">Agendar Horário</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- O conteúdo do agendamento (formulário, horários, etc.) virá aqui -->
+        <p>Conteúdo do modal aparecerá aqui...</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" class="btn btn-primary">Salvar Agendamento</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Lógica do Modal de Agendamento ---
+    const appointmentModal = document.getElementById('appointmentModal');
+    if (appointmentModal) {
+        appointmentModal.addEventListener('show.bs.modal', function (event) {
+            const triggerCell = event.relatedTarget;
+            const day = triggerCell.getAttribute('data-day');
+            const month = triggerCell.getAttribute('data-month');
+            const year = triggerCell.getAttribute('data-year');
+            const modalTitle = appointmentModal.querySelector('.modal-title');
+            modalTitle.textContent = `Agendar para o dia ${day}/${month}/${year}`;
+        });
+    }
+
+    // --- Lógica para recarregar a página com o profissional selecionado ---
+    const professionalSelect = document.getElementById('interest-select');
+    
+    if (professionalSelect) {
+        professionalSelect.addEventListener('change', function() {
+            const selectedValue = this.value;
+            const currentUrl = new URL(window.location.href);
+
+            if (selectedValue && selectedValue.startsWith('prof-')) {
+                const professionalId = selectedValue.replace('prof-', '');
+                currentUrl.searchParams.set('professional_id', professionalId);
+            } else {
+                currentUrl.searchParams.delete('professional_id');
+            }
+
+            window.location.href = currentUrl.toString();
+        });
+    }
+</script>
 {% endblock %}

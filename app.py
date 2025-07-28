@@ -1,5 +1,5 @@
 import os
-import sqlite3
+import calendar
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -24,6 +24,22 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# Tabela de associação para a relação N-N (Muitos-para-Muitos)
+# entre Profissionais e Áreas.
+professional_areas = db.Table('professional_areas',
+    db.Column('professional_id', db.Integer, db.ForeignKey('professional.id'), primary_key=True),
+    db.Column('area_id', db.Integer, db.ForeignKey('area.id'), primary_key=True)
+)
+
+class Area(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), unique=True, nullable=False) # e.g., Nutrição, Atividade Física
+    # A relação agora usa a tabela de associação 'professional_areas'
+    professionals = db.relationship('Professional', secondary=professional_areas, back_populates='areas', lazy='dynamic')
+
+    def __repr__(self):
+        return f'<Area {self.name}>'
+
 class Professional(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     firstName = db.Column(db.String(150), nullable=False)
@@ -31,6 +47,7 @@ class Professional(db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     contact_number = db.Column(db.String(150), nullable=False)
     hash = db.Column(db.String(150), nullable=False)
+    areas = db.relationship('Area', secondary=professional_areas, back_populates='professionals', lazy='dynamic')
 
     @property
     def full_name(self):
@@ -231,21 +248,72 @@ def about():
 def contact():
     return render_template('contact.html')
 
+@app.route('/professionals')
+@login_required
+def professionals():
+    """Exibe uma lista de todos os profissionais e suas áreas."""
+    # Junta as tabelas Professional e Area e ordena pelo nome da área, depois pelo sobrenome do profissional
+    all_professionals = Professional.query.join(Area).order_by(Area.name, Professional.lastName).all()
+    return render_template('professionals.html', professionals=all_professionals)
+
 
 @app.route("/agenda", methods=["GET"])
-@app.route("/agenda/<int:month>", methods=["GET"])
-def agenda(month=None):
-    months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+@app.route("/agenda/<int:year>/<int:month>", methods=["GET"])
+@login_required
+def agenda(year=None, month=None):
+    now = datetime.now()
+    # Pega o ID do profissional da query string da URL (ex: /agenda?professional_id=5)
+    print(f"DEBUG: Argumentos recebidos na URL: {request.args}")
+    selected_prof_id = request.args.get('professional_id', default=None, type=int)
 
+    if year is None:
+        year = now.year
     if month is None:
-        month_selected = datetime.now().month - 1
-    else:
-        month_selected = month % 12
+        month = now.month
 
-    mo = months[month_selected]
+    # Lógica robusta para calcular o mês/ano anterior e o próximo
+    current_date = datetime(year, month, 1)
 
-    return render_template("agenda.html", months=months, month_selected=month_selected, mo=mo)
+    # Mês anterior
+    prev_month_date = current_date - timedelta(days=1)
+    previous_year = prev_month_date.year
+    previous_month = prev_month_date.month
 
+    # Próximo mês
+    _, num_days_in_month = calendar.monthrange(year, month)
+    next_month_date = current_date + timedelta(days=num_days_in_month)
+    next_year = next_month_date.year
+    next_month = next_month_date.month
+
+    # Define o primeiro dia da semana como Domingo para corresponder ao HTML
+    # calendar.SUNDAY é 6. A tabela HTML começa com Domingo.
+    calendar.setfirstweekday(calendar.SUNDAY)
+    
+    # Gera a matriz do calendário diretamente.
+    # Dias fora do mês são representados por 0.
+    month_calendar = calendar.monthcalendar(year, month)
+
+    portuguese_months = {
+        1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+        5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+        9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+    }
+    month_name = portuguese_months.get(month, "Mês Desconhecido")
+
+    areas = Area.query.order_by(Area.name).all()
+
+    return render_template(
+        "agenda.html",
+        year=year,
+        month=month,
+        previous_year=previous_year,
+        previous_month=previous_month,
+        next_year=next_year,
+        next_month=next_month,
+        month_name=month_name,
+        calendar_data=month_calendar,
+        areas=areas,
+        selected_prof_id=selected_prof_id)
 
 if __name__ == '__main__':
     
