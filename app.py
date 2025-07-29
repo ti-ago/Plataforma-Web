@@ -344,20 +344,82 @@ def agenda(year=None, month=None):
         areas=areas,
         selected_prof_id=selected_prof_id)
 
-if __name__ == '__main__':
-    
-    with app.app_context():
-    
-        db.create_all()
+@app.route('/api/available_slots')
+@login_required
+def available_slots():
+    """Retorna os horários disponíveis para um profissional em uma data específica."""
+    professional_id = request.args.get('professional_id', type=int)
+    date_str = request.args.get('date') # Formato esperado: YYYY-MM-DD
 
-        # Adiciona planos de assinatura iniciais se não existirem
-        if not Subscription.query.first():
-            print("INFO: Populando o banco de dados com planos de assinatura...")
-            plan1 = Subscription(name="Plano Mensal", price=29.90, duration_months=1)
-            plan2 = Subscription(name="Plano Semestral", price=149.90, duration_months=6)
-            plan3 = Subscription(name="Plano Anual", price=239.90, duration_months=12)
-            db.session.add_all([plan1, plan2, plan3])
-            db.session.commit()
-            print("INFO: Planos de assinatura criados.")
-    
+    if not professional_id or not date_str:
+        return jsonify({'error': 'ID do profissional e data são obrigatórios'}), 400
+
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Formato de data inválido. Use YYYY-MM-DD.'}), 400
+
+    # Define o horário de trabalho e a duração da consulta
+    start_hour, end_hour, duration_minutes = 9, 18, 60
+
+    # Busca agendamentos existentes para o dia
+    start_of_day = datetime.combine(selected_date, time.min)
+    end_of_day = datetime.combine(selected_date, time.max)
+
+    existing_appointments = Appointment.query.filter(
+        Appointment.professional_id == professional_id,
+        Appointment.start_time.between(start_of_day, end_of_day)
+    ).all()
+    booked_slots = {appt.start_time.time() for appt in existing_appointments}
+
+    # Gera todos os horários possíveis e filtra os já agendados
+    available_slots = []
+    current_time = time(start_hour, 0)
+    while current_time < time(end_hour, 0):
+        if current_time not in booked_slots:
+            available_slots.append(current_time.strftime('%H:%M'))
+        current_datetime = datetime.combine(datetime.today(), current_time) + timedelta(minutes=duration_minutes)
+        current_time = current_datetime.time()
+
+    return jsonify(available_slots)
+
+@app.route('/api/book_appointment', methods=['POST'])
+@login_required
+def book_appointment():
+    """Cria um novo agendamento, verificando a assinatura do usuário primeiro."""
+    # PASSO MAIS IMPORTANTE: Verifica se o usuário tem uma assinatura ativa
+    if not current_user.has_active_subscription:
+        return jsonify({'error': 'É necessário ter uma assinatura ativa para marcar uma consulta.'}), 403 # 403 Forbidden
+
+    data = request.get_json()
+    professional_id = data.get('professional_id')
+    date_str = data.get('date') # YYYY-MM-DD
+    time_str = data.get('time') # HH:MM
+
+    if not all([professional_id, date_str, time_str]):
+        return jsonify({'error': 'Dados incompletos para o agendamento.'}), 400
+
+    try:
+        start_datetime = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M')
+    except ValueError:
+        return jsonify({'error': 'Formato de data ou hora inválido.'}), 400
+
+    # Verifica se o horário ainda está vago (evita agendamentos duplicados)
+    if Appointment.query.filter_by(professional_id=professional_id, start_time=start_datetime).first():
+        return jsonify({'error': 'Este horário não está mais disponível. Por favor, escolha outro.'}), 409 # 409 Conflict
+
+    professional = Professional.query.get_or_404(professional_id)
+    new_appointment = Appointment(
+        title=f"Consulta com {professional.full_name}",
+        start_time=start_datetime,
+        end_time=start_datetime + timedelta(hours=1),
+        professional_id=professional_id,
+        user_id=current_user.id
+    )
+    db.session.add(new_appointment)
+    db.session.commit()
+
+    return jsonify({'message': f'Consulta agendada com sucesso para {start_datetime.strftime("%d/%m/%Y às %H:%M")}.'}), 201
+
+if __name__ == '__main__':
     app.run(debug=True)

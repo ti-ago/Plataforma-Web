@@ -124,12 +124,15 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <!-- O conteúdo do agendamento (formulário, horários, etc.) virá aqui -->
-        <p>Conteúdo do modal aparecerá aqui...</p>
+        <p id="modal-loading-text">Buscando horários disponíveis...</p>
+        <div id="available-slots-container" class="d-flex flex-wrap gap-2">
+            <!-- Horários disponíveis serão injetados aqui pelo JavaScript -->
+        </div>
+        <div id="modal-error-text" class="text-danger mt-2"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-        <button type="button" class="btn btn-primary">Salvar Agendamento</button>
+        <button type="button" class="btn btn-primary" id="save-appointment-btn">Salvar Agendamento</button>
       </div>
     </div>
   </div>
@@ -139,22 +142,110 @@
 
 {% block scripts %}
 <script>
-    // --- Lógica do Modal de Agendamento ---
     const appointmentModal = document.getElementById('appointmentModal');
+    const professionalSelect = document.getElementById('interest-select');
+    let selectedDateInfo = {}; // Armazena a data clicada para usar no agendamento
+
     if (appointmentModal) {
-        appointmentModal.addEventListener('show.bs.modal', function (event) {
+        appointmentModal.addEventListener('show.bs.modal', async function (event) {
+            // 1. Redefine o estado do modal
+            const modalTitle = appointmentModal.querySelector('.modal-title');
+            const slotsContainer = document.getElementById('available-slots-container');
+            const loadingText = document.getElementById('modal-loading-text');
+            const errorText = document.getElementById('modal-error-text');
+            const saveButton = document.getElementById('save-appointment-btn');
+
+            slotsContainer.innerHTML = ''; // Limpa horários anteriores
+            errorText.textContent = '';
+            loadingText.style.display = 'block';
+            saveButton.disabled = true;
+
+            // 2. Obtém os dados da célula clicada
             const triggerCell = event.relatedTarget;
             const day = triggerCell.getAttribute('data-day');
             const month = triggerCell.getAttribute('data-month');
             const year = triggerCell.getAttribute('data-year');
-            const modalTitle = appointmentModal.querySelector('.modal-title');
+
+            // Formata a data para o padrão YYYY-MM-DD que a API espera
+            const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            selectedDateInfo = { formattedDate }; // Salva para uso posterior
             modalTitle.textContent = `Agendar para o dia ${day}/${month}/${year}`;
+
+            const professionalId = professionalSelect.value.replace('prof-', '');
+
+            // 3. Valida e busca os horários na API
+            if (!professionalId) {
+                loadingText.style.display = 'none';
+                errorText.textContent = 'Por favor, selecione um profissional primeiro.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/available_slots?professional_id=${professionalId}&date=${formattedDate}`);
+                const slots = await response.json();
+
+                if (!response.ok) throw new Error(slots.error || 'Não foi possível buscar os horários.');
+
+                loadingText.style.display = 'none';
+                if (slots.length === 0) {
+                    errorText.textContent = 'Nenhum horário disponível para esta data.';
+                } else {
+                    slots.forEach(slot => {
+                        const slotButton = document.createElement('button');
+                        slotButton.type = 'button';
+                        slotButton.className = 'btn btn-outline-primary';
+                        slotButton.textContent = slot;
+                        slotButton.dataset.time = slot;
+                        slotsContainer.appendChild(slotButton);
+                    });
+                }
+            } catch (error) {
+                loadingText.style.display = 'none';
+                errorText.textContent = error.message;
+            }
         });
     }
 
-    // --- Lógica para recarregar a página com o profissional selecionado ---
-    const professionalSelect = document.getElementById('interest-select');
-    
+    // 4. Lida com a seleção de um horário
+    const slotsContainer = document.getElementById('available-slots-container');
+    const saveButton = document.getElementById('save-appointment-btn');
+    let selectedTime = null;
+
+    slotsContainer.addEventListener('click', function(event) {
+        if (event.target.tagName === 'BUTTON') {
+            slotsContainer.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            selectedTime = event.target.dataset.time;
+            saveButton.disabled = false; // Habilita o botão de salvar
+        }
+    });
+
+    // 5. Lida com o clique no botão de salvar agendamento
+    saveButton.addEventListener('click', async function() {
+        if (!selectedTime) return;
+
+        const professionalId = professionalSelect.value.replace('prof-', '');
+        try {
+            const response = await fetch('/api/book_appointment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    professional_id: professionalId,
+                    date: selectedDateInfo.formattedDate,
+                    time: selectedTime
+                })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Ocorreu um erro desconhecido.');
+
+            bootstrap.Modal.getInstance(appointmentModal).hide();
+            alert(result.message); // Feedback simples de sucesso
+        } catch (error) {
+            alert(error.message); // Exibe o erro (ex: "É necessário ter uma assinatura ativa...")
+        }
+    });
+
+    // Lógica para recarregar a página com o profissional selecionado (sem alterações)
     if (professionalSelect) {
         professionalSelect.addEventListener('change', function() {
             const selectedValue = this.value;
