@@ -47,6 +47,7 @@ class Professional(db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     contact_number = db.Column(db.String(150), nullable=False)
     hash = db.Column(db.String(150), nullable=False)
+    bio = db.Column(db.Text, nullable=True)
     areas = db.relationship('Area', secondary=professional_areas, back_populates='professionals', lazy='dynamic')
 
     @property
@@ -247,7 +248,9 @@ def reset_password():
 
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    """Exibe a página 'Sobre Nós' e lista os profissionais cadastrados."""
+    professionals_list = Professional.query.order_by(Professional.lastName).all()
+    return render_template('about.html', professionals=professionals_list)
 
 @app.route('/contact')
 def contact():
@@ -420,6 +423,77 @@ def book_appointment():
     db.session.commit()
 
     return jsonify({'message': f'Consulta agendada com sucesso para {start_datetime.strftime("%d/%m/%Y às %H:%M")}.'}), 201
+
+@app.cli.command("init-db")
+def init_db_command():
+    """Cria as tabelas do banco de dados."""
+    db.create_all()
+    print("Banco de dados inicializado e tabelas criadas.")
+
+@app.cli.command("seed-db")
+def seed_db_command():
+    """Popula o banco de dados com dados iniciais (áreas, profissionais, planos)."""
+    # 1. Seed Areas
+    if Area.query.first():
+        print("Áreas já existem. Pulando.")
+    else:
+        print("Criando áreas...")
+        areas_data = ["Nutrição", "Atividade Física", "Cuidado Emocional", "Fisioterapia"]
+        for area_name in areas_data:
+            area = Area(name=area_name)
+            db.session.add(area)
+        db.session.commit()
+        print("Áreas criadas.")
+
+    # 2. Seed Professionals
+    if Professional.query.first():
+        print("Profissionais já existem. Pulando.")
+    else:
+        print("Criando profissionais...")
+        nutricao = Area.query.filter_by(name="Nutrição").one()
+        atividade_fisica = Area.query.filter_by(name="Atividade Física").one()
+        cuidado_emocional = Area.query.filter_by(name="Cuidado Emocional").one()
+
+        professionals_data = [
+            {"firstName": "Ana", "lastName": "Silva", "email": "ana.silva@example.com", "contact_number": "11987654321", "password": "password123", "areas": [nutricao], "bio": "Ana Silva é nutricionista com mais de 10 anos de experiência em saúde materna e infantil. Apaixonada por ajudar novas mães a encontrarem um equilíbrio alimentar saudável e prazeroso."},
+            {"firstName": "Bruno", "lastName": "Costa", "email": "bruno.costa@example.com", "contact_number": "21912345678", "password": "password123", "areas": [atividade_fisica], "bio": "Educador físico especialista em exercícios pós-parto, Bruno Costa desenvolve programas de atividade física seguros e eficazes para a recuperação e fortalecimento do corpo da mulher."},
+            {"firstName": "Carla", "lastName": "Mendes", "email": "carla.mendes@example.com", "contact_number": "31988887777", "password": "password123", "areas": [cuidado_emocional], "bio": "Psicóloga com foco em perinatalidade, Carla Mendes oferece um espaço de acolhimento e escuta para as mães navegarem pelas complexas emoções da maternidade."},
+            {"firstName": "Daniel", "lastName": "Oliveira", "email": "daniel.oliveira@example.com", "contact_number": "41999998888", "password": "password123", "areas": [nutricao, atividade_fisica], "bio": "Com dupla formação em Nutrição e Educação Física, Daniel Oliveira tem uma abordagem integrada do bem-estar, combinando planos alimentares e rotinas de exercício para uma saúde completa."}
+        ]
+
+        for prof_data in professionals_data:
+            hashed_password = generate_password_hash(prof_data["password"], method='scrypt', salt_length=16)
+            professional = Professional(
+                firstName=prof_data["firstName"], 
+                lastName=prof_data["lastName"], 
+                email=prof_data["email"], 
+                contact_number=prof_data["contact_number"], 
+                hash=hashed_password,
+                bio=prof_data.get("bio")
+            )
+            for area in prof_data["areas"]:
+                professional.areas.append(area)
+            db.session.add(professional)
+        db.session.commit()
+        print("Profissionais criados.")
+
+    # 3. Seed Subscription Plans
+    if Subscription.query.first():
+        print("Planos de assinatura já existem. Pulando.")
+    else:
+        print("Criando planos de assinatura...")
+        plans_data = [
+            {"name": "Plano Mensal", "price": 29.90, "duration_months": 1},
+            {"name": "Plano Trimestral", "price": 79.90, "duration_months": 3},
+            {"name": "Plano Anual", "price": 299.90, "duration_months": 12},
+        ]
+        for plan_data in plans_data:
+            plan = Subscription(**plan_data)
+            db.session.add(plan)
+        db.session.commit()
+        print("Planos de assinatura criados.")
+
+    print("Banco de dados populado com sucesso!")
 
 if __name__ == '__main__':
     app.run(debug=True)

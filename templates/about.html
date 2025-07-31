@@ -8,24 +8,117 @@
 <h1>Sobre Nós</h1>
 <div>
     <p>
-        O projeto Move Mom nasceu de uma experiência de maternidade com dificuldades onde lorem ipsum dolor sit amet consectetur adipisicing elit. Laborum veniam reiciendis pariatur excepturi omnis iste doloremque doloribus nihil, qui cumque, eveniet corporis et vitae fugit quas, reprehenderit at eum hic. Lorem ipsum dolor sit amet consectetur adipisicing elit. Sed, voluptatem ratione modi voluptatum vel unde excepturi voluptates debitis error assumenda expedita illum quam quos numquam facere iste ducimus totam nam. Lorem ipsum dolor sit amet consectetur, adipisicing elit. Eius dolorum obcaecati sequi ratione nostrum recusandae praesentium tempore at illo velit earum nesciunt quasi, ipsam officiis quaerat veritatis reprehenderit sunt aliquid. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam necessitatibus iste nesciunt consequuntur ipsa praesentium ipsum eligendi sequi eum eaque nisi deserunt, consequatur, similique, quam voluptatibus minima? Animi, minus ad!
+        A Move Mom é formada por uma equipe multidisciplinar de especialistas apaixonados por apoiar mães em sua jornada de bem-estar. Acreditamos que o cuidado integrado é a chave para uma maternidade mais leve e saudável. Conheça abaixo os profissionais que se dedicam a criar conteúdos, guiar práticas e oferecer um espaço seguro para o seu desenvolvimento.
     </p>
 </div>
-<div class="category-container">
-    <a href="{{ url_for('contents', category='nutrition') }}" class="category-people-thumbnail">
-        <img src="{{ url_for('static', filename='images/profile1.jpg') }}" alt="Nutrição">
-        <h3>Nutrição</h3>
-        <p>Dicas e receitas para uma alimentação saudável para você e sua família.</p>
-    </a>
-    <a href="{{ url_for('contents', category='physical_activity') }}" class="category-people-thumbnail">
-        <img src="{{ url_for('static', filename='images/profile2.jpg') }}" alt="Atividade Física">
-        <h3>Atividade Física</h3>
-        <p>Exercícios e rotinas para fazer em casa e manter o corpo em movimento.</p>
-    </a>
-    <a href="{{ url_for('contents', category='emotional_care') }}" class="category-people-thumbnail">
-        <img src="{{ url_for('static', filename='images/profile3.jpg') }}" alt="Cuidados Emocionais">
-        <h3>Cuidados Emocionais</h3>
-        <p>Apoio e orientação para cuidar da sua saúde mental e emocional.</p>
-    </a>
+
+<div class="container text-center my-5">
+    <h2 class="mb-4">Nossos Pilares de Cuidado</h2>
+    <p class="lead text-muted mb-5">Nossa abordagem é holística, focando em três áreas essenciais para o bem-estar materno.</p>
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="pillar-card">
+                <i class="bi bi-heart-pulse-fill pillar-icon"></i>
+                <h3>Nutrição Consciente</h3>
+                <p>Dicas e receitas para uma alimentação que nutre o corpo e a alma, adaptada para cada fase da maternidade.</p>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="pillar-card">
+                <i class="bi bi-activity pillar-icon"></i>
+                <h3>Movimento Gentil</h3>
+                <p>Atividades físicas seguras e eficazes para a recuperação pós-parto, fortalecimento e energia.</p>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="pillar-card">
+                <i class="bi bi-chat-left-heart-fill pillar-icon"></i>
+                <h3>Acolhimento Emocional</h3>
+                <p>Um espaço de escuta e apoio para navegar pelas emoções e desafios de ser mãe.</p>
+            </div>
+        </div>
+    </div>
 </div>
+
+<hr class="my-5">
+
+<h2 class="text-center mb-4">Conheça Nossos Profissionais</h2>
+<div class="professional-container">
+    {% for prof in professionals %}
+    <div class="professional-card" 
+         data-bs-toggle="modal" 
+         data-bs-target="#professionalModal"
+         data-prof-name="{{ prof.full_name }}"
+         data-prof-areas="{{ prof.areas.all()|map(attribute='name')|join(', ') }}"
+         data-prof-bio="{{ prof.bio or 'Nenhuma biografia disponível.' }}"
+         data-prof-img="{{ url_for('static', filename='images/profile' ~ loop.cycle('1', '2', '3') ~ '.jpg') }}"
+         data-prof-agenda-url="{{ url_for('agenda', professional_id=prof.id) }}">
+        {# Usando as imagens de perfil existentes de forma cíclica para demonstração #}
+        <img src="{{ url_for('static', filename='images/profile' ~ loop.cycle('1', '2', '3') ~ '.jpg') }}" alt="Foto de {{ prof.full_name }}">
+        <div class="professional-card-body">
+            <h3>{{ prof.full_name }}</h3>
+            <p class="professional-areas"><strong>Áreas:</strong> {{ prof.areas.all()|map(attribute='name')|join(', ') }}</p>
+            <button class="btn btn-outline-primary mt-auto">Ver Detalhes</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal do Profissional -->
+<div class="modal fade" id="professionalModal" tabindex="-1" aria-labelledby="professionalModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="professionalModalLabel">Detalhes do Profissional</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+            <div class="col-md-4 text-center">
+                <img id="modal-prof-img" src="" class="img-fluid rounded-circle mb-3" alt="Foto do Profissional" style="width: 150px; height: 150px; object-fit: cover;">
+                <h4 id="modal-prof-name"></h4>
+                <p id="modal-prof-areas" class="text-muted"></p>
+            </div>
+            <div class="col-md-8">
+                <h5>Sobre</h5>
+                <p id="modal-prof-bio"></p>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <a id="modal-prof-agenda-link" href="#" class="btn btn-primary">Ver Agenda</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const professionalModal = document.getElementById('professionalModal');
+    if (professionalModal) {
+        professionalModal.addEventListener('show.bs.modal', function (event) {
+            // Elemento que acionou o modal (o card do profissional)
+            const triggerElement = event.relatedTarget;
+
+            // Extrai as informações dos atributos data-* do card
+            const name = triggerElement.getAttribute('data-prof-name');
+            const areas = triggerElement.getAttribute('data-prof-areas');
+            const bio = triggerElement.getAttribute('data-prof-bio');
+            const imgSrc = triggerElement.getAttribute('data-prof-img');
+            const agendaUrl = triggerElement.getAttribute('data-prof-agenda-url');
+
+            // Atualiza o conteúdo do modal com as informações extraídas
+            const modal = this;
+            modal.querySelector('#modal-prof-name').textContent = name;
+            modal.querySelector('#modal-prof-areas').textContent = 'Áreas: ' + areas;
+            modal.querySelector('#modal-prof-bio').textContent = bio;
+            modal.querySelector('#modal-prof-img').setAttribute('src', imgSrc);
+            modal.querySelector('#modal-prof-agenda-link').setAttribute('href', agendaUrl);
+        });
+    }
+});
+</script>
 {% endblock %}

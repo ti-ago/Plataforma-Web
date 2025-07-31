@@ -7,6 +7,9 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
@@ -40,10 +43,11 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         {% if current_user.is_authenticated %}
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('agenda') }}">Marque uma Consulta</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('agenda') }}">Marque uma Consulta</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('subscriptions_page') }}">Planos</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Sair</a></li>
+                            <li class="nav-item"><a class="nav-link" id="user-menu-trigger" href="#" role="button"><i class="bi bi-person-circle fs-4"></i></a></li>
                         {% else %}
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Register</a></li>
@@ -57,22 +61,80 @@
         {% block main %}{% endblock %}
     </main>
 
+    {% if current_user.is_authenticated %}
+        <div id="sidebar-overlay"></div>
+        <div id="user-sidebar">
+            <div class="sidebar-header">
+                <h3>Minha Conta</h3>
+                <button id="close-sidebar-btn" class="btn-close"></button>
+            </div>
+            <div class="sidebar-profile">
+                <img src="{{ url_for('static', filename='images/default-user.png') }}" alt="Foto do Usuário">
+                <h5>{{ current_user.firstName }} {{ current_user.lastName }}</h5>
+                <p>{{ current_user.email }}</p>
+            </div>
+            <hr>
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="#"><i class="bi bi-person-fill"></i> Perfil</a>
+                </li>
+                <li>
+                    <a href="#"><i class="bi bi-credit-card-fill"></i> Assinatura</a>
+                </li>
+            </ul>
+            <div class="sidebar-appointments">
+                <h6>Meus Agendamentos</h6>
+                <div id="appointment-list">
+                    <!-- Agendamentos serão carregados aqui dinamicamente -->
+                    <p class="text-muted small">Nenhum agendamento futuro.</p>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger w-100">Sair</a>
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 
-    <!-- Custom JS for auto-fading alerts -->
+    <!-- Page-specific scripts can be injected here -->
+    {% block scripts %}{% endblock %}
+
+    <!-- Layout-wide scripts (Alerts and Sidebar) -->
     <script>
-        // Wait for the document to be fully loaded
         document.addEventListener('DOMContentLoaded', (event) => {
-            // Select all alert elements
+            // --- Auto-fading alerts logic ---
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(function(alert) {
-                // Set a timeout to automatically close the alert after 5 seconds (5000 milliseconds)
                 setTimeout(() => new bootstrap.Alert(alert).close(), 5000);
             });
+
+            // --- Sidebar logic ---
+            const trigger = document.getElementById('user-menu-trigger');
+            const sidebar = document.getElementById('user-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const closeBtn = document.getElementById('close-sidebar-btn');
+
+            function openSidebar() {
+                if (sidebar) sidebar.classList.add('open');
+                if (overlay) overlay.style.display = 'block';
+            }
+
+            function closeSidebar() {
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.style.display = 'none';
+            }
+
+            if (trigger) {
+                trigger.addEventListener('click', function(e) {
+                    e.preventDefault(); // Evita que a página pule para o topo
+                    openSidebar();
+                });
+            }
+            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+            if (overlay) overlay.addEventListener('click', closeSidebar);
         });
     </script>
-    {% block scripts %}
-    {% endblock %}
 </body>
 </html>
